@@ -29,10 +29,11 @@ const updateRankOnDragUp = async (req,res,next) =>{
 
    try {
     
-     const updatedTaskRank = await Task.findByIdUpdate(req.params.id,{
-        $inc:{rank:req.body.rank}
+    await Task.findByIdUpdate(req.params.id,{
+        $inc:{rank:1}
     })
    res.status(200).send("Task Updated succesfully") 
+   next()
     
    } catch (error) {
 
@@ -45,10 +46,11 @@ const updateRankOnDragDown = async (req,res,next) =>{
 
     try {
      
-      const updatedTaskRank = await Task.findByIdUpdate(req.params.id,{
-         $inc:{rank:req.body.rank }
+      await Task.findByIdUpdate(req.params.id,{
+         $inc:{rank:-1 }
      })
     res.status(200).send("Task Updated succesfully") 
+    next()
      
     } catch (error) {
  
@@ -57,10 +59,60 @@ const updateRankOnDragDown = async (req,res,next) =>{
  }
  
 
+ const updateState = async (req,res, next )=>{
+
+try {
+
+    await Task.findByIdUpdate(req.params.id,{
+        $set:{state:req.body.state}
+    })
+    res.status(200).json({msg:"State changed successfully"})
+    
+} catch (error) {
+    
+}
+
+ }
+
+ const getAllTasks = (req,res,next) => {
+
+     
+     try {
+        const tasks = Task.find();
+        res.status(200).json(tasks)
+        next()
+        
+    } catch (error) {
+
+        
+    }
+
+
+ }
+
+
+ const getTaskStates = (req,res,next) => {
+
+     
+    try {
+       const tasks = Task.find({state:req.body.state});
+       res.status(200).json(tasks)
+       next()
+       
+   } catch (error) {
+
+       
+   }
+
+
+}
 
 
 
 
+module.exports = {
+   addTask, getAllTasks,updateState,updateRankOnDragDown,updateRankOnDragUp,getTaskStates
+}
 
 
 
