@@ -25,14 +25,14 @@ if (client && rank && state){
 }
 
 
-const updateRankOnDrag = async (req,res,next) =>{
+const updateRankOnDragUp = async (req,res,next) =>{
 
    try {
     
      const updatedTaskRank = await Task.findByIdUpdate(req.params.id,{
         $inc:{rank:req.body.rank}
     })
-   res.status(200).send("Task Updated succesfully")
+   res.status(200).send("Task Updated succesfully") 
     
    } catch (error) {
 
@@ -40,6 +40,22 @@ const updateRankOnDrag = async (req,res,next) =>{
    }
 }
 
+
+const updateRankOnDragDown = async (req,res,next) =>{
+
+    try {
+     
+      const updatedTaskRank = await Task.findByIdUpdate(req.params.id,{
+         $inc:{rank:req.body.rank }
+     })
+    res.status(200).send("Task Updated succesfully") 
+     
+    } catch (error) {
+ 
+     res.status(error.status).send(error.message)
+    }
+ }
+ 
 
 
 

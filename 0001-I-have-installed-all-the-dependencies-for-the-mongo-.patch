@@ -1,0 +1,273 @@
+From 07403ab0ccea0fe7bf2f21f665ea9eb1a042fa47 Mon Sep 17 00:00:00 2001
+From: BEZYL MOPHAT OTIENO
+ <96384227+Bezyl-Mophat-Otieno@users.noreply.github.com>
+Date: Mon, 15 May 2023 20:47:46 +0300
+Subject: [PATCH]  I have installed all the dependencies for the mongo DB
+
+---
+ .env                  |   0
+ controllers/create.js |  50 ++++++++++++++
+ models/Tasks.js       |  24 +++++++
+ server.js             | 152 +++++++-----------------------------------
+ 4 files changed, 97 insertions(+), 129 deletions(-)
+ create mode 100644 .env
+ create mode 100644 controllers/create.js
+ create mode 100644 models/Tasks.js
+
+diff --git a/.env b/.env
+new file mode 100644
+index 0000000..e69de29
+diff --git a/controllers/create.js b/controllers/create.js
+new file mode 100644
+index 0000000..cead20f
+--- /dev/null
++++ b/controllers/create.js
+@@ -0,0 +1,50 @@
++import mongoose from "mongoose"
++import Task from '../models/Tasks'
++
++
++const addTask = async (req,res,next)=>{
++const { client , rank , state} = req.body
++// check that all the parameters are provided from the request 
++if (client && rank && state){
++
++    try {
++
++        const taskAdded = Task.create ({
++            client,rank,state
++        
++         })
++        
++         taskAdded && res.status(200).json(taskAdded)
++        
++    } catch (error) {
++
++        res.status(500).send("internal Server Error: " + error.message)
++    }
++
++}
++}
++
++
++const updateRankOnDrag = async (req,res,next) =>{
++
++   try {
++    
++     const updatedTaskRank = await Task.findByIdUpdate(req.params.id,{
++        $inc:{rank:req.body.rank}
++    })
++   res.status(200).send("Task Updated succesfully")
++    
++   } catch (error) {
++
++    res.status(error.status).send(error.message)
++   }
++}
++
++
++
++
++
++
++
++
++
+diff --git a/models/Tasks.js b/models/Tasks.js
+new file mode 100644
+index 0000000..bea308e
+--- /dev/null
++++ b/models/Tasks.js
+@@ -0,0 +1,24 @@
++import mongoose from 'mongoose';
++
++
++const taskSchema = new mongoose.Schema({
++
++    client : {
++        type:String,
++        required:[true, " client name must be provided as an Identification "]
++
++
++    },
++    rank:{
++        type:Number,
++        required:[true, " rank must be provided"]
++
++    },
++    state:{
++        type:String,
++        default:"Backlog",
++        required:[true,"The state of a task must be specified"],
++
++    }
++})
++module.exports = mongoose.model("Task",taskSchema)
+\ No newline at end of file
+diff --git a/server.js b/server.js
+index 7ba16d7..22e298f 100644
+--- a/server.js
++++ b/server.js
+@@ -1,136 +1,30 @@
+-import express from 'express';
+-import Database from 'better-sqlite3';
+-
+-const app = express();
+-
+-app.use(express.json());
+-
+-app.get('/', (req, res) => {
+-  return res.status(200).send({'message': 'SHIPTIVITY API. Read documentation to see API docs'});
+-});
+-
+-// We are keeping one connection alive for the rest of the life application for simplicity
+-const db = new Database('./clients.db');
+-
+-// Don't forget to close connection when server gets terminated
+-const closeDb = () => db.close();
+-process.on('SIGTERM', closeDb);
+-process.on('SIGINT', closeDb);
+-
+-/**
+- * Validate id input
+- * @param {any} id
+- */
+-const validateId = (id) => {
+-  if (Number.isNaN(id)) {
+-    return {
+-      valid: false,
+-      messageObj: {
+-      'message': 'Invalid id provided.',
+-      'long_message': 'Id can only be integer.',
+-      },
+-    };
+-  }
+-  const client = db.prepare('select * from clients where id = ? limit 1').get(id);
+-  if (!client) {
+-    return {
+-      valid: false,
+-      messageObj: {
+-      'message': 'Invalid id provided.',
+-      'long_message': 'Cannot find client with that id.',
+-      },
+-    };
+-  }
+-  return {
+-    valid: true,
+-  };
+-}
+-
+-/**
+- * Validate priority input
+- * @param {any} priority
+- */
+-const validatePriority = (priority) => {
+-  if (Number.isNaN(priority)) {
+-    return {
+-      valid: false,
+-      messageObj: {
+-      'message': 'Invalid priority provided.',
+-      'long_message': 'Priority can only be positive integer.',
+-      },
+-    };
+-  }
+-  return {
+-    valid: true,
+-  }
+-}
+-
+-/**
+- * Get all of the clients. Optional filter 'status'
+- * GET /api/v1/clients?status={status} - list all clients, optional parameter status: 'backlog' | 'in-progress' | 'complete'
+- */
+-app.get('/api/v1/clients', (req, res) => {
+-  const status = req.query.status;
+-  if (status) {
+-    // status can only be either 'backlog' | 'in-progress' | 'complete'
+-    if (status !== 'backlog' && status !== 'in-progress' && status !== 'complete') {
+-      return res.status(400).send({
+-        'message': 'Invalid status provided.',
+-        'long_message': 'Status can only be one of the following: [backlog | in-progress | complete].',
+-      });
+-    }
+-    const clients = db.prepare('select * from clients where status = ?').all(status);
+-    return res.status(200).send(clients);
++import express from "express";
++import mongoose from "mongoose";
++import dotenv from 'dotenv'
++
++const app = express()
++dotenv.config()
++const PORT = process.env.PORT || 3000;
++
++const connectDB= async () =>{
++
++  try {
++      const conn=  mongoose.connect(process.env.MONGO_URI);
++      console.log(`MongoDB connected : ${conn.connection.host}`.cyan.underline);
++      
++  } catch (error) {
++      console.log(error);
++      process.exit(1);
++      
+   }
+-  const statement = db.prepare('select * from clients');
+-  const clients = statement.all();
+-  return res.status(200).send(clients);
+-});
+-
+-/**
+- * Get a client based on the id provided.
+- * GET /api/v1/clients/{client_id} - get client by id
+- */
+-app.get('/api/v1/clients/:id', (req, res) => {
+-  const id = parseInt(req.params.id , 10);
+-  const { valid, messageObj } = validateId(id);
+-  if (!valid) {
+-    res.status(400).send(messageObj);
+-  }
+-  return res.status(200).send(db.prepare('select * from clients where id = ?').get(id));
+-});
+-
+-/**
+- * Update client information based on the parameters provided.
+- * When status is provided, the client status will be changed
+- * When priority is provided, the client priority will be changed with the rest of the clients accordingly
+- * Note that priority = 1 means it has the highest priority (should be on top of the swimlane).
+- * No client on the same status should not have the same priority.
+- * This API should return list of clients on success
+- *
+- * PUT /api/v1/clients/{client_id} - change the status of a client
+- *    Data:
+- *      status (optional): 'backlog' | 'in-progress' | 'complete',
+- *      priority (optional): integer,
+- *
+- */
+-app.put('/api/v1/clients/:id', (req, res) => {
+-  const id = parseInt(req.params.id , 10);
+-  const { valid, messageObj } = validateId(id);
+-  if (!valid) {
+-    res.status(400).send(messageObj);
++  
+   }
++app.listen(PORT, ()=>{
++  connectDB()
++  console.log(`listening on port ${PORT}`);
++})
+ 
+-  let { status, priority } = req.body;
+-  let clients = db.prepare('select * from clients').all();
+-  const client = clients.find(client => client.id === id);
+-
+-  /* ---------- Update code below ----------*/
+ 
+ 
+ 
+-  return res.status(200).send(clients);
+-});
+ 
+-app.listen(3001);
+-console.log('app running on port ', 3001);
+-- 
+2.25.1
+
